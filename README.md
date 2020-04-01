@@ -4,7 +4,7 @@ A simple tool to create new (semver) releases.
 ## Installation
 Requires Go version >= 1.13
 ```bash
-GO111MODULE=on go get github.com/statisticsnorway/release-tool@master
+GO111MODULE=on go get github.com/statisticsnorway/release-buddy@master
 ```
 You can specify a release tag or commit SHA instead of `master`
 
