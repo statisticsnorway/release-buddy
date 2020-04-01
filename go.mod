@@ -1,4 +1,4 @@
-module no.ssb/release
+module github.com/statisticsnorway/release-buddy
 
 go 1.14
 
