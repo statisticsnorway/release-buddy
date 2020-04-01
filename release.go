@@ -3,12 +3,13 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/Masterminds/semver"
 	"log"
 	"os"
 	"os/exec"
 	"sort"
 	"strings"
+
+	"github.com/Masterminds/semver"
 )
 
 func main() {
@@ -17,17 +18,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	nextPatch, err := nextPatch(out)
+	nextPatch, err := findNextPatch(out)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	newVersion, err := newVersion(nextPatch)
+	newVersion, err := promptForNewVersion(nextPatch)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Tagging new version: %s\n", newVersion)
+	fmt.Printf("Creating new release: %s\n", newVersion)
 	if err = tagNewVersion(newVersion); err != nil {
 		log.Fatal(err)
 	}
@@ -35,6 +36,7 @@ func main() {
 	fmt.Println("Done")
 }
 
+// executeTagCommand executes 'git tag' and returns the output
 func executeTagCommand() ([]byte, error) {
 	out, err := exec.Command("git", "tag").Output()
 	if err != nil {
@@ -43,53 +45,57 @@ func executeTagCommand() ([]byte, error) {
 	return out, nil
 }
 
-func nextPatch(bs []byte) (string, error) {
-	s := string(bs)
+// findNextPatch expects the output from an invocation of 'git tag' as input.
+// findNextPatch will find the next semver patch by looking through all tags and
+// incrementing the highest semver found.
+// Returns 0.0.1 if no semver tags where found.
+func findNextPatch(bs []byte) (string, error) {
+	rs := strings.Split(strings.TrimSpace(string(bs)), "\n")
 
-	s = strings.Replace(s, "\n", "", -1)
+	var vs []*semver.Version
 
-	raw := strings.Split(strings.TrimSpace(string(bs)), "\n")
-
-	vs := make([]*semver.Version, len(raw))
-	for i, r := range raw {
+	for _, r := range rs {
 		v, err := semver.NewVersion(r)
 		if err != nil {
 			continue
 		}
-		vs[i] = v
+		vs = append(vs, v)
 	}
 
-	if len(vs) == 0 {
+	if vs == nil {
 		return "0.0.1", nil
 	}
 
 	sort.Sort(semver.Collection(vs))
-
 	nextPatch := vs[len(vs)-1].IncPatch()
 
 	return nextPatch.Original(), nil
 }
 
-func newVersion(s string) (string, error) {
+// promptForNewVersion expects as input a semver string.
+// promptForNewVersion creates a command line prompt to allow a
+// user to either accept a proposed version or specify another one.
+func promptForNewVersion(s string) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("What is the release version? %s: ", s)
-	text, err := reader.ReadString('\n')
+	input, err := reader.ReadString('\n')
 	if err != nil {
 		return "", err
 	}
-	trimmed := strings.TrimSpace(text)
-	vs := s
+	trimmed := strings.TrimSpace(input)
+	newVersion := s
 	if len(trimmed) > 0 {
-		vs = trimmed
+		newVersion = trimmed
 	}
 
-	version, err := semver.NewVersion(vs)
+	version, err := semver.NewVersion(newVersion)
 	if err != nil {
 		return "", err
 	}
 	return version.Original(), nil
 }
 
+// tagNewVersion creates and pushes an annotated tag of a given semver.
 func tagNewVersion(s string) error {
 	_, err := exec.Command("git", "tag", "-a", s, "-m", "New release").Output()
 	if err != nil {
