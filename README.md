@@ -13,7 +13,7 @@ The binary will be installed into `$GOPATH/bin` if `$GOPATH` is set, `$HOME/go/b
 ## Usage
 To release the next patch version, hit enter when prompted, e.g:
 ```bash
-$ release
+$ release-buddy
 What is the release version? 1.4.2:
 Creating new release: 1.4.2
 Done 
@@ -21,7 +21,7 @@ Done
 
 To release a version different from the next patch, enter the new version when prompted, e.g:
 ```bash
-$ release
+$ release-buddy
 What is the release version? 1.4.2: 1.5.0
 Creating new release: 1.5.0
 Done 
